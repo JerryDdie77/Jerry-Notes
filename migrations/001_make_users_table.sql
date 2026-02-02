@@ -4,7 +4,8 @@ CREATE TABLE users (
     user_name VARCHAR(30) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     password_hash VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE
+    email VARCHAR(255) NOT NULL UNIQUE,
+    is_blocked BOOLEAN DEFAULT FALSE
 );
 
 -- +goose Down
