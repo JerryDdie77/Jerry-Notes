@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"fmt"
+	"log"
+	"time"
 )
 
 type NoteStorage interface {
-	GetUserID(ctx context.Context, noteID int) (int, error)
 	GetNote(ctx context.Context, noteID int) (Note, error)
 	UpdateNote(ctx context.Context, noteID int, title, content string) error
 	DeleteNote(ctx context.Context, noteID int) error
@@ -24,13 +23,43 @@ func NewNoteService(s NoteStorage) *NoteService {
 	return &NoteService{storage: s}
 }
 
+type Note struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type NoteInput struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+type NoteOutput struct {
+	ID        int       `json:"id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type NoteList struct {
+	ID        int       `json:"id"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 func (n *NoteService) GetNote(ctx context.Context, noteID int, userID int) (NoteOutput, error) {
 	note, err := n.storage.GetNote(ctx, noteID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, ErrNotFound) {
 			return NoteOutput{}, ErrNotFound
 		}
-		return NoteOutput{}, fmt.Errorf("storage GetNote: %w", err)
+		log.Printf("storage GetNote failed: noteID=%d userID=%d err=%v\n", noteID, userID, err)
+		return NoteOutput{}, ErrInternal
 	}
 
 	if note.UserID != userID {
@@ -38,7 +67,7 @@ func (n *NoteService) GetNote(ctx context.Context, noteID int, userID int) (Note
 	}
 
 	return NoteOutput{
-		ID:        noteID,
+		ID:        note.ID,
 		Title:     note.Title,
 		Content:   note.Content,
 		CreatedAt: note.CreatedAt,
@@ -53,25 +82,32 @@ func (n *NoteService) UpdateNote(ctx context.Context, userID, noteID int, conten
 		return ErrEmptyTitle
 	}
 
-	userIDFromNote, err := n.storage.GetUserID(ctx, noteID)
+	note, err := n.storage.GetNote(ctx, noteID)
 
 	switch {
-	case errors.Is(err, sql.ErrNoRows):
+	case errors.Is(err, ErrNotFound):
 		return ErrNotFound
 	case err != nil:
-		return fmt.Errorf("storage GetUserID: %w", err)
+
+		log.Printf("storage GetNote failed: noteID=%d userID=%d err=%v\n", noteID, userID, err)
+
+		return ErrInternal
 	}
+
+	userIDFromNote := note.UserID
 
 	if userIDFromNote != userID {
 		return ErrForbidden
 	}
 
 	err = n.storage.UpdateNote(ctx, noteID, title, content)
+
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return ErrNotFound
 	case err != nil:
-		return fmt.Errorf("storage UpdateNote: %w", err)
+		log.Fatalf("storage UpdateNote failed: noteID=%d title=%s content=%s err=%v", noteID, title, content, err)
+		return ErrInternal
 	}
 
 	return nil
@@ -79,14 +115,17 @@ func (n *NoteService) UpdateNote(ctx context.Context, userID, noteID int, conten
 
 func (n *NoteService) DeleteNote(ctx context.Context, userID, noteID int) error {
 
-	userIDFromNote, err := n.storage.GetUserID(ctx, noteID)
+	note, err := n.storage.GetNote(ctx, noteID)
 	switch {
-	case errors.Is(err, sql.ErrNoRows):
+	case errors.Is(err, ErrNotFound):
 		return ErrNotFound
 
 	case err != nil:
-		return fmt.Errorf("storage GetUserID: %w", err)
+		log.Printf("storage GetNote failed: noteID=%d userID=%d err=%v\n", noteID, userID, err)
+		return ErrInternal
 	}
+
+	userIDFromNote := note.UserID
 
 	if userIDFromNote != userID {
 		return ErrForbidden
@@ -94,7 +133,8 @@ func (n *NoteService) DeleteNote(ctx context.Context, userID, noteID int) error 
 
 	err = n.storage.DeleteNote(ctx, noteID)
 	if err != nil {
-		return fmt.Errorf("storage DeleteNote: %w", err)
+		log.Printf("storage DeleteNote failed: noteID=%d err=%v\n", noteID, err)
+		return ErrInternal
 	}
 
 	return nil
@@ -115,7 +155,8 @@ func (n *NoteService) CreateNote(ctx context.Context, userID int, note NoteInput
 	case errors.Is(err, ErrNotFound):
 		return 0, ErrNotFound
 	case err != nil:
-		return 0, fmt.Errorf("storage CreateNote: %w", err)
+		log.Printf("storage CreateNote failed: userID=%d title=%s content=%s err=%v\n", userID, title, content, err)
+		return 0, ErrInternal
 	}
 
 	return noteID, nil
@@ -127,7 +168,8 @@ func (n *NoteService) ListNotes(ctx context.Context, userID int) ([]NoteList, er
 	notes := make([]NoteList, 0)
 	fullNotes, err := n.storage.ListNotes(ctx, userID)
 	if err != nil {
-		return []NoteList{}, fmt.Errorf("storage ListNotes: %w", err)
+		log.Printf("storage ListNotes failed: userID=%d", userID)
+		return nil, ErrInternal
 	}
 
 	for _, v := range fullNotes {
