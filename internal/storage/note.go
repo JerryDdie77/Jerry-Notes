@@ -12,16 +12,10 @@ type PosgtresNoteStorage struct {
 	db *sql.DB
 }
 
-func (p PosgtresNoteStorage) GetUserID(ctx context.Context, noteID int) (int, error) {
-	query := "SELECT user_id FROM notes WHERE id = $1"
-
-	var userID int
-
-	if err := p.db.QueryRowContext(ctx, query, noteID).Scan(&userID); err != nil {
-		return 0, fmt.Errorf("Scan: %w", err)
+func NewPostgresNoteStorage(db *sql.DB) *PosgtresNoteStorage {
+	return &PosgtresNoteStorage{
+		db: db,
 	}
-
-	return userID, nil
 }
 
 func (p PosgtresNoteStorage) GetNote(ctx context.Context, noteID int) (service.Note, error) {
@@ -30,6 +24,11 @@ func (p PosgtresNoteStorage) GetNote(ctx context.Context, noteID int) (service.N
 	var n service.Note
 
 	if err := p.db.QueryRowContext(ctx, query, noteID).Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt); err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return service.Note{}, service.ErrNotFound
+		}
+
 		return service.Note{}, fmt.Errorf("Scan: %w", err)
 	}
 
@@ -59,11 +58,6 @@ func (p *PosgtresNoteStorage) DeleteNote(ctx context.Context, noteID int) error 
 	query := "DELETE FROM notes WHERE id = $1"
 	_, err := p.db.ExecContext(ctx, query, noteID)
 	if err != nil {
-
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("Note with id %d not found", noteID)
-		}
-
 		return fmt.Errorf("Exec: %w", err)
 	}
 
@@ -90,21 +84,22 @@ func (p *PosgtresNoteStorage) ListNotes(ctx context.Context, userID int) ([]serv
 
 	rows, err := p.db.QueryContext(ctx, query, userID)
 	if err != nil {
-		return []service.Note{}, fmt.Errorf("QueryContext: %w", err)
+		return nil, fmt.Errorf("QueryContext: %w", err)
 	}
+	defer rows.Close()
+
 	notes := make([]service.Note, 0)
 	for rows.Next() {
 		var n service.Note
 		if err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt); err != nil {
-			return []service.Note{}, fmt.Errorf("Scan: %w", err)
+			return nil, fmt.Errorf("Scan: %w", err)
 		}
 		notes = append(notes, n)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []service.Note{}, fmt.Errorf("rows Err: %w", err)
+		return nil, fmt.Errorf("rows Err: %w", err)
 	}
 
 	return notes, nil
-
 }
