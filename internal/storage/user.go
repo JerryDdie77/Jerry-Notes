@@ -31,8 +31,14 @@ func (p PosgtresNoteStorage) GetUser(ctx context.Context, email string) (service
 		&u.Email,
 		&u.IsBlocked,
 	); err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return service.User{}, service.ErrNotFound
+		}
+
 		return service.User{}, fmt.Errorf("scan: %w", err)
 	}
+
 	return u, nil
 }
 
@@ -57,6 +63,11 @@ func (p *PostgresUserStorage) CreateUser(ctx context.Context, name, passwordHash
 	var id int64
 
 	if err := p.db.QueryRowContext(ctx, query, name, passwordHash, email).Scan(&id); err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, service.ErrNotFound
+		}
+
 		return 0, fmt.Errorf("scan: %w", err)
 	}
 

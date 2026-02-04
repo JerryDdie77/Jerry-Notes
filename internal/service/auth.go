@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+	"log"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,7 +11,7 @@ import (
 type UserStorage interface {
 	GetUser(ctx context.Context, email string) (User, error)
 	EmailExists(ctx context.Context, email string) (bool, error)
-	CreateUser(ctx context.Context, name, password_hash, email string) (int64, error)
+	CreateUser(ctx context.Context, name, passwordHash, email string) (int64, error)
 }
 
 type AuthService struct {
@@ -42,6 +42,9 @@ func (a *AuthService) RegisterUser(ctx context.Context, name, password, email st
 	// Checking if the email is busy
 	existsEmail, err := a.storage.EmailExists(ctx, email)
 	if err != nil {
+
+		log.Printf("storage EmailExists failed: email=%s err=%v", email, err)
+
 		return 0, ErrInternal
 	}
 
@@ -56,6 +59,9 @@ func (a *AuthService) RegisterUser(ctx context.Context, name, password, email st
 	}
 
 	if err != nil {
+
+		log.Printf("hash password failed: err=%v", err)
+
 		return 0, ErrInternal
 	}
 
@@ -63,6 +69,9 @@ func (a *AuthService) RegisterUser(ctx context.Context, name, password, email st
 	id, err := a.storage.CreateUser(ctx, name, hash, email)
 
 	if err != nil {
+
+		log.Printf("storage CreateUser failed: name=%s email=%s err=%v", name, email, err)
+
 		return 0, ErrInternal
 	}
 
@@ -72,13 +81,15 @@ func (a *AuthService) RegisterUser(ctx context.Context, name, password, email st
 }
 
 // This func will be check login and password and return the user_id
-func (a *AuthService) LoginUser(ctx context.Context, email, password string) (int64, error) {
+func (a *AuthService) AuthentificateUser(ctx context.Context, email, password string) (int64, error) {
 	user, err := a.storage.GetUser(ctx, email)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, ErrNotFound) {
 			return 0, ErrInvalidCredential
 		}
+
+		log.Printf("storage GetUser failed: email=%s err=%v", email, err)
 
 		return 0, ErrInternal
 	}
