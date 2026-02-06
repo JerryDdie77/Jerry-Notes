@@ -8,12 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserStorage interface {
-	GetUser(ctx context.Context, email string) (User, error)
-	EmailExists(ctx context.Context, email string) (bool, error)
-	CreateUser(ctx context.Context, name, passwordHash, email string) (int64, error)
-}
-
 type AuthService struct {
 	storage UserStorage
 }
@@ -82,7 +76,7 @@ func (a *AuthService) RegisterUser(ctx context.Context, name, password, email st
 
 // This func will be check login and password and return the user_id
 func (a *AuthService) AuthentificateUser(ctx context.Context, email, password string) (int64, error) {
-	user, err := a.storage.GetUser(ctx, email)
+	user, err := a.storage.GetUserByEmail(ctx, email)
 
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
