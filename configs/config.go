@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	JWTSecret string
-	DBURL     string
+	JWTSecret  string
+	DBURL      string
+	GmailToken string
 }
 
 func LoadConfig() (*Config, error) {
@@ -30,5 +31,11 @@ func LoadConfig() (*Config, error) {
 		return &Config{}, fmt.Errorf("DB_URL is required")
 	}
 
-	return &Config{JWTSecret: secret, DBURL: dbURL}, nil
+	gmailToken := os.Getenv("GMAIL_TOKEN")
+
+	if gmailToken == "" {
+		return &Config{}, fmt.Errorf("GMAIL_TOKEN is required")
+	}
+
+	return &Config{JWTSecret: secret, DBURL: dbURL, GmailToken: gmailToken}, nil
 }
