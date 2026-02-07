@@ -15,6 +15,7 @@ func NewEmailService(gmailToken string) *EmailService {
 }
 
 func (e *EmailService) SendConfirmationCode(ctx context.Context, email, code string) error {
+
 	auth := smtp.PlainAuth(
 		"",
 		"jerrynotesbusiness@gmail.com",

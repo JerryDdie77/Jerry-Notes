@@ -8,12 +8,14 @@ import (
 )
 
 type Manager struct {
-	secret []byte
+	secret   []byte
+	tokenTTL time.Duration
 }
 
-func NewManager(secret string) *Manager {
+func NewManager(secret string, tokenTTL time.Duration) *Manager {
 	return &Manager{
-		secret: []byte(secret),
+		secret:   []byte(secret),
+		tokenTTL: tokenTTL,
 	}
 }
 
@@ -23,9 +25,9 @@ type Claims struct {
 }
 
 // Creating JWT access token using user_id
-func (m *Manager) GenerateToken(userID int64, ttl time.Duration) (string, error) {
+func (m *Manager) GenerateToken(userID int64) (string, error) {
 	now := time.Now()
-	exp := now.Add(ttl)
+	exp := now.Add(m.tokenTTL)
 
 	claims := Claims{
 		UserID: userID,

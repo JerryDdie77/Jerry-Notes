@@ -7,6 +7,9 @@ type UserStorage interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	EmailExists(ctx context.Context, email string) (bool, error)
 	CreateUser(ctx context.Context, name, passwordHash, email string) (int64, error)
+	SavePendingUser(ctx context.Context, name, passwordHash, email, code string) error
+	GetPendingUser(ctx context.Context, email string) (PendingUser, error)
+	DeletePendingUser(ctx context.Context, email string) error
 	ChangeNameByID(ctx context.Context, id int64, newName string) error
 	DeleteUserByID(ctx context.Context, id int64) error
 }

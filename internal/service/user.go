@@ -18,8 +18,8 @@ func NewUserService(storage UserStorage) *UserService {
 
 func (u *UserService) ChangeName(ctx context.Context, id int64, newName string) error {
 
-	if newName == "" {
-		return ErrEmptyName
+	if !validName(newName) {
+		return ErrInvalidName
 	}
 
 	user, err := u.storage.GetUserByID(ctx, id)
@@ -49,6 +49,8 @@ func (u *UserService) ChangeName(ctx context.Context, id int64, newName string) 
 }
 
 func (u *UserService) DeleteUser(ctx context.Context, id int64) error {
+
+	// Check existing of user
 	user, err := u.storage.GetUserByID(ctx, id)
 
 	if err != nil {

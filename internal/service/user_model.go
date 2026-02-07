@@ -10,3 +10,11 @@ type User struct {
 	Email        string
 	IsBlocked    bool
 }
+
+type PendingUser struct {
+	Email        string
+	Name         string
+	PasswordHash string
+	Code         string
+	CreatedAt    time.Time
+}
