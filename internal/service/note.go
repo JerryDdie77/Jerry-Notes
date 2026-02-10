@@ -8,11 +8,11 @@ import (
 )
 
 type NoteStorage interface {
-	GetNote(ctx context.Context, noteID int) (Note, error)
-	UpdateNote(ctx context.Context, noteID int, title, content string) error
-	DeleteNote(ctx context.Context, noteID int) error
-	CreateNote(ctx context.Context, userID int, title, content string) (int, error)
-	ListNotes(ctx context.Context, userID int) ([]Note, error)
+	GetNote(ctx context.Context, noteID int64) (Note, error)
+	UpdateNote(ctx context.Context, noteID int64, title, content string) error
+	DeleteNote(ctx context.Context, noteID int64) error
+	CreateNote(ctx context.Context, userID int64, title, content string) (int64, error)
+	ListNotes(ctx context.Context, userID int64) ([]Note, error)
 }
 
 type NoteService struct {
@@ -24,8 +24,8 @@ func NewNoteService(s NoteStorage) *NoteService {
 }
 
 type Note struct {
-	ID        int       `json:"id"`
-	UserID    int       `json:"user_id"`
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
@@ -38,7 +38,7 @@ type NoteInput struct {
 }
 
 type NoteOutput struct {
-	ID        int       `json:"id"`
+	ID        int64     `json:"id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
@@ -46,13 +46,13 @@ type NoteOutput struct {
 }
 
 type NoteList struct {
-	ID        int       `json:"id"`
+	ID        int64     `json:"id"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (n *NoteService) GetNote(ctx context.Context, noteID int, userID int) (NoteOutput, error) {
+func (n *NoteService) GetNote(ctx context.Context, noteID int64, userID int64) (NoteOutput, error) {
 	note, err := n.storage.GetNote(ctx, noteID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -76,7 +76,7 @@ func (n *NoteService) GetNote(ctx context.Context, noteID int, userID int) (Note
 
 }
 
-func (n *NoteService) UpdateNote(ctx context.Context, userID, noteID int, content, title string) error {
+func (n *NoteService) UpdateNote(ctx context.Context, userID, noteID int64, content, title string) error {
 
 	if title == "" {
 		return ErrEmptyTitle
@@ -113,7 +113,7 @@ func (n *NoteService) UpdateNote(ctx context.Context, userID, noteID int, conten
 	return nil
 }
 
-func (n *NoteService) DeleteNote(ctx context.Context, userID, noteID int) error {
+func (n *NoteService) DeleteNote(ctx context.Context, userID, noteID int64) error {
 
 	note, err := n.storage.GetNote(ctx, noteID)
 	switch {
@@ -140,7 +140,7 @@ func (n *NoteService) DeleteNote(ctx context.Context, userID, noteID int) error 
 	return nil
 }
 
-func (n *NoteService) CreateNote(ctx context.Context, userID int, note NoteInput) (int, error) {
+func (n *NoteService) CreateNote(ctx context.Context, userID int64, note NoteInput) (int64, error) {
 
 	title := note.Title
 	content := note.Content
@@ -163,7 +163,7 @@ func (n *NoteService) CreateNote(ctx context.Context, userID int, note NoteInput
 
 }
 
-func (n *NoteService) ListNotes(ctx context.Context, userID int) ([]NoteList, error) {
+func (n *NoteService) ListNotes(ctx context.Context, userID int64) ([]NoteList, error) {
 
 	notes := make([]NoteList, 0)
 	fullNotes, err := n.storage.ListNotes(ctx, userID)
