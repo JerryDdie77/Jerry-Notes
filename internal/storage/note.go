@@ -8,17 +8,17 @@ import (
 	"jerry-notes/internal/service"
 )
 
-type PosgtresNoteStorage struct {
+type PostgresNoteStorage struct {
 	db *sql.DB
 }
 
-func NewPostgresNoteStorage(db *sql.DB) *PosgtresNoteStorage {
-	return &PosgtresNoteStorage{
+func NewPostgresNoteStorage(db *sql.DB) *PostgresNoteStorage {
+	return &PostgresNoteStorage{
 		db: db,
 	}
 }
 
-func (p PosgtresNoteStorage) GetNote(ctx context.Context, noteID int) (service.Note, error) {
+func (p PostgresNoteStorage) GetNote(ctx context.Context, noteID int) (service.Note, error) {
 	query := "SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE id = $1"
 
 	var n service.Note
@@ -35,7 +35,7 @@ func (p PosgtresNoteStorage) GetNote(ctx context.Context, noteID int) (service.N
 	return n, nil
 }
 
-func (p *PosgtresNoteStorage) UpdateNote(ctx context.Context, noteID int, title, content string) error {
+func (p *PostgresNoteStorage) UpdateNote(ctx context.Context, noteID int, title, content string) error {
 	query := "UPDATE notes SET title = $1, content = $2 WHERE id = $3"
 
 	res, err := p.db.ExecContext(ctx, query, title, content, noteID)
@@ -54,7 +54,7 @@ func (p *PosgtresNoteStorage) UpdateNote(ctx context.Context, noteID int, title,
 	return nil
 }
 
-func (p *PosgtresNoteStorage) DeleteNote(ctx context.Context, noteID int) error {
+func (p *PostgresNoteStorage) DeleteNote(ctx context.Context, noteID int) error {
 	query := "DELETE FROM notes WHERE id = $1"
 	_, err := p.db.ExecContext(ctx, query, noteID)
 	if err != nil {
@@ -64,7 +64,7 @@ func (p *PosgtresNoteStorage) DeleteNote(ctx context.Context, noteID int) error 
 	return nil
 }
 
-func (p *PosgtresNoteStorage) CreateNote(ctx context.Context, userID int, title, content string) (int, error) {
+func (p *PostgresNoteStorage) CreateNote(ctx context.Context, userID int, title, content string) (int, error) {
 	query := "INSERT INTO notes(user_id, title, content) VALUES($1, $2, $3) RETURNING id"
 
 	var noteID int
@@ -79,7 +79,7 @@ func (p *PosgtresNoteStorage) CreateNote(ctx context.Context, userID int, title,
 	return noteID, nil
 }
 
-func (p *PosgtresNoteStorage) ListNotes(ctx context.Context, userID int) ([]service.Note, error) {
+func (p *PostgresNoteStorage) ListNotes(ctx context.Context, userID int) ([]service.Note, error) {
 	query := "SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE user_id = $1"
 
 	rows, err := p.db.QueryContext(ctx, query, userID)

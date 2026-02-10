@@ -18,7 +18,7 @@ func NewPostgresUserStorage(db *sql.DB) *PostgresUserStorage {
 	}
 }
 
-func (p PosgtresNoteStorage) GetUserByEmail(ctx context.Context, email string) (service.User, error) {
+func (p PostgresUserStorage) GetUserByEmail(ctx context.Context, email string) (service.User, error) {
 	query := "SELECT id, user_name, created_at, password_hash, email, is_blocked FROM users WHERE email = $1"
 
 	var u service.User
@@ -42,7 +42,7 @@ func (p PosgtresNoteStorage) GetUserByEmail(ctx context.Context, email string) (
 	return u, nil
 }
 
-func (p PosgtresNoteStorage) GetUserByID(ctx context.Context, id int64) (service.User, error) {
+func (p PostgresUserStorage) GetUserByID(ctx context.Context, id int64) (service.User, error) {
 	query := "SELECT id, user_name, created_at, password_hash, email, is_blocked FROM users WHERE id = $1"
 	var u service.User
 	err := p.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Name, &u.CreatedAt, &u.PasswordHash, &u.Email, &u.IsBlocked)
@@ -89,7 +89,7 @@ func (p *PostgresUserStorage) CreateUser(ctx context.Context, name, passwordHash
 	return id, nil
 }
 
-func (p *PosgtresUserStorage) SavePendingUser(ctx context.Context, name, passwordHash, email, code string) error {
+func (p *PostgresUserStorage) SavePendingUser(ctx context.Context, name, passwordHash, email, code string) error {
 	query := "INSERT INTO pending_users(email, user_name, password_hash, code) VALUES($1, $2, $3, $4)"
 
 	res, err := p.db.ExecContext(ctx, query, email, name, passwordHash, code)
