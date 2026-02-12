@@ -12,12 +12,12 @@ import (
 
 type AuthService struct {
 	storage      UserStorage
-	emailService EmailService
-	jwtManager   jwt.Manager
+	emailService *EmailService
+	jwtManager   *jwt.Manager
 	codeTTL      time.Duration
 }
 
-func NewAuthService(storage UserStorage, emailService EmailService, jwtManager jwt.Manager, codeTTL time.Duration) *AuthService {
+func NewAuthService(storage UserStorage, emailService *EmailService, jwtManager *jwt.Manager, codeTTL time.Duration) *AuthService {
 	return &AuthService{
 		storage:      storage,
 		emailService: emailService,

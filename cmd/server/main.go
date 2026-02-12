@@ -2,44 +2,64 @@ package main
 
 import (
 	"database/sql"
-	"jerry-notes/configs"
+	"fmt"
+	"jerry-notes/config"
+	"jerry-notes/internal/app"
+	"jerry-notes/internal/httpserver"
 	"jerry-notes/internal/jwt"
 	"jerry-notes/internal/service"
 	"jerry-notes/internal/storage"
 	"log"
-	"time"
 
 	_ "github.com/lib/pq"
 )
 
+func initDB(cfg *config.Config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.DBURL)
+	if err != nil {
+		return nil, fmt.Errorf("sql Open: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("db Ping: %w", err)
+	}
+
+	return db, nil
+}
+
+func initApp(cfg *config.Config, db *sql.DB) *app.App {
+	pgNoteStorage := storage.NewPostgresNoteStorage(db)
+	pgUserStorage := storage.NewPostgresUserStorage(db)
+
+	jwtManager := jwt.NewManager(cfg.JWTSecret, cfg.JWTAccessTokenTTL)
+	emailService := service.NewEmailService(cfg.GmailToken)
+	noteService := service.NewNoteService(pgNoteStorage)
+	userService := service.NewUserService(pgUserStorage)
+	authService := service.NewAuthService(pgUserStorage, emailService, jwtManager, cfg.CodeTTL)
+
+	return app.New(noteService, userService, authService)
+
+}
+
 func main() {
-	// Getting cfg variable with secret data
-	cfg, err := configs.LoadConfig()
+	// Getting cfg
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("loadConfig: %v", err)
 	}
 
 	// Connecting to DB
-	db, err := sql.Open("postgres", cfg.DBURL)
+	db, err := initDB(cfg)
 	if err != nil {
-		log.Fatalf("sql Open: %v", err)
+		log.Fatalf("initDB %v", err)
 	}
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("db Ping: %v", err)
+	application := initApp(cfg, db)
+
+	h := httpserver.NewHandler(application)
+	r := httpserver.NewRouter(h)
+
+	if err := r.Run(":8080"); err != nil {
+		log.Fatalf("run server: %v", err)
 	}
-
-	// Creating Storages
-	postgresNoteStorage := storage.NewPostgresNoteStorage(db)
-	postgresUserStorage := storage.NewPostgresUserStorage(db)
-
-	// Creating JWT manager
-	jwtManager := jwt.NewManager(cfg.JWTSecret, 20*time.Minute)
-
-	// Creating services
-	emailService := service.NewEmailService(cfg.GmailToken)
-	authService := service.NewAuthService(postgresUserStorage, *emailService, *jwtManager, 5*time.Minute)
-	userService := service.NewUserService(postgresUserStorage)
-	noteService := service.NewNoteService(postgresNoteStorage)
 
 }
