@@ -2,38 +2,44 @@ package main
 
 import (
 	"database/sql"
-	"jerry-notes/internal/api"
+	"jerry-notes/configs"
+	"jerry-notes/internal/jwt"
+	"jerry-notes/internal/service"
+	"jerry-notes/internal/storage"
 	"log"
-	"net/http"
-	"os"
+	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	// Getting environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Can not Load .env variables", err)
+	// Getting cfg variable with secret data
+	cfg, err := configs.LoadConfig()
+	if err != nil {
+		log.Fatalf("loadConfig: %v", err)
 	}
 
-	connStr := os.Getenv("DB_URL")
-
-	db, err := sql.Open("postgres", connStr)
+	// Connecting to DB
+	db, err := sql.Open("postgres", cfg.DBURL)
 	if err != nil {
 		log.Fatalf("sql Open: %v", err)
 	}
-
 	err = db.Ping()
 	if err != nil {
 		log.Fatalf("db Ping: %v", err)
 	}
 
-	// Creating the route and register all handlers in them
-	r := mux.NewRouter()
-	api.RegisterRoutes(r)
+	// Creating Storages
+	postgresNoteStorage := storage.NewPostgresNoteStorage(db)
+	postgresUserStorage := storage.NewPostgresUserStorage(db)
 
-	// Stating a server in a port :8080
-	http.ListenAndServe(":8080", r)
+	// Creating JWT manager
+	jwtManager := jwt.NewManager(cfg.JWTSecret, 20*time.Minute)
+
+	// Creating services
+	emailService := service.NewEmailService(cfg.GmailToken)
+	authService := service.NewAuthService(postgresUserStorage, *emailService, *jwtManager, 5*time.Minute)
+	userService := service.NewUserService(postgresUserStorage)
+	noteService := service.NewNoteService(postgresNoteStorage)
+
 }
