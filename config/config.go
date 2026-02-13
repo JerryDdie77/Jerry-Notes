@@ -11,7 +11,7 @@ import (
 type Config struct {
 	JWTSecret         string
 	DBURL             string
-	GmailToken        string
+	MailToken         string
 	JWTAccessTokenTTL time.Duration
 	CodeTTL           time.Duration
 }
@@ -31,9 +31,9 @@ func LoadConfig() (*Config, error) {
 		return &Config{}, fmt.Errorf("DB_URL is required")
 	}
 
-	gmailToken := os.Getenv("GMAIL_TOKEN")
-	if gmailToken == "" {
-		return &Config{}, fmt.Errorf("GMAIL_TOKEN is required")
+	mailToken := os.Getenv("MAIL_TOKEN")
+	if mailToken == "" {
+		return &Config{}, fmt.Errorf("MAIL_TOKEN is required")
 	}
 
 	ttlStr := os.Getenv("JWT_ACCESS_TOKEN_TTL")
@@ -59,7 +59,7 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		JWTSecret:         secret,
 		DBURL:             dbURL,
-		GmailToken:        gmailToken,
+		MailToken:         mailToken,
 		JWTAccessTokenTTL: jwtTTL,
 		CodeTTL:           codeTTL,
 	}, nil
