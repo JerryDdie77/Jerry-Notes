@@ -86,7 +86,7 @@ func (a *AuthService) StartRegistration(ctx context.Context, name, password, ema
 }
 
 // Confirms user registration by code and returns a JWT access token
-func (a *AuthService) ConfirmRegistration(ctx context.Context, email, code string) (string, error) {
+func (a *AuthService) VerifyCode(ctx context.Context, email, code string) (string, error) {
 
 	// Fetch pending user data
 	user, err := a.storage.GetPendingUser(ctx, email)

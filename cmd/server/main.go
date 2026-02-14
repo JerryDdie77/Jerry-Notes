@@ -32,12 +32,13 @@ func initApp(cfg *config.Config, db *sql.DB) *app.App {
 	pgUserStorage := storage.NewPostgresUserStorage(db)
 
 	jwtManager := jwt.NewManager(cfg.JWTSecret, cfg.JWTAccessTokenTTL)
-	emailService := service.NewEmailService(cfg.GmailToken)
+
+	emailService := service.NewEmailService(cfg.MailToken)
 	noteService := service.NewNoteService(pgNoteStorage)
 	userService := service.NewUserService(pgUserStorage)
 	authService := service.NewAuthService(pgUserStorage, emailService, jwtManager, cfg.CodeTTL)
 
-	return app.New(noteService, userService, authService)
+	return app.New(noteService, userService, authService, jwtManager)
 
 }
 
