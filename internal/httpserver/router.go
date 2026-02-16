@@ -21,6 +21,8 @@ func NewRouter(h *Handler) *gin.Engine {
 
 	protected.POST("/notes", h.CreateNote)
 	protected.GET("/notes/:id", h.GetNote)
+	protected.DELETE("/notes/:id", h.DeleteNote)
+	protected.GET("/notes", h.ListNotes)
 
 	return r
 }

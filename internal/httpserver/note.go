@@ -89,3 +89,59 @@ func (h *Handler) GetNote(c *gin.Context) {
 
 	c.JSON(http.StatusOK, note)
 }
+
+func (h *Handler) DeleteNote(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
+		return
+	}
+
+	noteIDStr := c.Param("id")
+
+	noteID, err := strconv.Atoi(noteIDStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	err = h.app.NoteService.DeleteNote(ctx, userID, int64(noteID))
+
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrInternal):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "successfully deleted"})
+
+}
+
+func (h *Handler) ListNotes(c *gin.Context) {
+
+	userID, ok := getUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	notes, err := h.app.NoteService.ListNotes(ctx, userID)
+	if errors.Is(err, service.ErrInternal) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, notes)
+}
