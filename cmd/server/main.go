@@ -33,7 +33,7 @@ func initApp(cfg *config.Config, db *sql.DB) *app.App {
 
 	jwtManager := jwt.NewManager(cfg.JWTSecret, cfg.JWTAccessTokenTTL)
 
-	emailService := service.NewEmailService(cfg.MailToken)
+	emailService := service.NewEmailService(cfg.GmailToken)
 	noteService := service.NewNoteService(pgNoteStorage)
 	userService := service.NewUserService(pgUserStorage)
 	authService := service.NewAuthService(pgUserStorage, emailService, jwtManager, cfg.CodeTTL)

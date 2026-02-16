@@ -11,14 +11,16 @@ import (
 type Config struct {
 	JWTSecret         string
 	DBURL             string
-	MailToken         string
+	GmailToken        string
 	JWTAccessTokenTTL time.Duration
 	CodeTTL           time.Duration
 }
 
 func LoadConfig() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return &Config{}, fmt.Errorf("load: %w", err)
+	envPath := "/home/jerryddie77/Документы/Jerry-Notes/.env"
+
+	if err := godotenv.Load(envPath); err != nil {
+		return &Config{}, fmt.Errorf("load env: %w", err)
 	}
 
 	secret := os.Getenv("JWT_SECRET")
@@ -31,8 +33,8 @@ func LoadConfig() (*Config, error) {
 		return &Config{}, fmt.Errorf("DB_URL is required")
 	}
 
-	mailToken := os.Getenv("MAIL_TOKEN")
-	if mailToken == "" {
+	gmailToken := os.Getenv("GMAIL_TOKEN")
+	if gmailToken == "" {
 		return &Config{}, fmt.Errorf("MAIL_TOKEN is required")
 	}
 
@@ -59,7 +61,7 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		JWTSecret:         secret,
 		DBURL:             dbURL,
-		MailToken:         mailToken,
+		GmailToken:        gmailToken,
 		JWTAccessTokenTTL: jwtTTL,
 		CodeTTL:           codeTTL,
 	}, nil
