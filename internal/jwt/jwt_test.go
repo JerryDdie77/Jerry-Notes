@@ -1,18 +1,19 @@
 package jwt_test
 
 import (
+	"jerry-notes/config"
 	"jerry-notes/internal/jwt"
-	"os"
 	"testing"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 func TestJWT(t *testing.T) {
-	_ = godotenv.Load()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
 	const id = 12
-	jwtManager := jwt.NewManager(os.Getenv("JWT_SECRET"), 1*time.Second)
+	jwtManager := jwt.NewManager(cfg.JWTSecret, 1*time.Second)
 	token, err := jwtManager.GenerateToken(id)
 	if err != nil {
 		t.Fatal(err)
