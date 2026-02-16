@@ -42,6 +42,11 @@ func (h *Handler) StartRegistration(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+
+		if errors.Is(err, service.ErrWeakPassword) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "code sent to email"})
@@ -94,4 +99,44 @@ func (h *Handler) VerifyCode(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "registered and logged in"})
 
+}
+
+func (h *Handler) Login(c *gin.Context) {
+
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "bad request",
+			"data":  err.Error(),
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	jwtToken, err := h.app.AuthService.AuthenticateUser(ctx, req.Email, req.Password)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrInternal):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrInvalidCredential):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrUserBlocked):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.SetCookie("auth_token", jwtToken, 7*24*60*60, "/", "", true, true)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "registered and logged in"})
 }
