@@ -4,6 +4,7 @@ import (
 	"errors"
 	"jerry-notes/internal/service"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,4 +52,40 @@ func (h *Handler) CreateNote(c *gin.Context) {
 		"note_id": noteID,
 	})
 
+}
+
+func (h *Handler) GetNote(c *gin.Context) {
+
+	userID, ok := getUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
+		return
+	}
+
+	noteIDStr := c.Param("id")
+
+	noteID, err := strconv.Atoi(noteIDStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	note, err := h.app.NoteService.GetNote(ctx, int64(noteID), userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrInternal):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		case errors.Is(err, service.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, note)
 }

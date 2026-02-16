@@ -12,10 +12,15 @@ func NewRouter(h *Handler) *gin.Engine {
 	{
 		authGroup.POST("/register", h.StartRegistration)
 		authGroup.POST("/verify-code", h.VerifyCode)
+		authGroup.POST("/login", h.Login)
 	}
 
 	protected := api.Group("/protected")
+
 	protected.Use(h.JWTMiddleware())
+
+	protected.POST("/notes", h.CreateNote)
+	protected.GET("/notes/:id", h.GetNote)
 
 	return r
 }
